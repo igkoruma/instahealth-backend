@@ -1,5 +1,8 @@
 export default async function handler(req, res) {
-  const { INSTAGRAM_APP_ID, INSTAGRAM_APP_SECRET, INSTAGRAM_REDIRECT_URI } = process.env;
+  const { INSTAGRAM_APP_ID, INSTAGRAM_APP_SECRET } = process.env;
+  
+  // REDIRECT_URI'YI KODA GÖMDÜK. ENV HATASI BİTTİ.
+  const INSTAGRAM_REDIRECT_URI = 'https://instahealth-backend.vercel.app/api/auth';
   
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
@@ -23,7 +26,10 @@ export default async function handler(req, res) {
     });
     
     const tokenData = await tokenRes.json();
-    if (tokenData.error_message) throw new Error(tokenData.error_message);
+    if (tokenData.error_message) {
+      console.error('INSTAGRAM TOKEN HATA:', tokenData);
+      throw new Error(tokenData.error_message);
+    }
 
     const userRes = await fetch(`https://graph.instagram.com/me?fields=id,username,account_type,media_count&access_token=${tokenData.access_token}`);
     const userData = await userRes.json();
@@ -33,6 +39,7 @@ export default async function handler(req, res) {
       user: userData 
     });
   } catch (err) {
+    console.error('GENEL HATA:', err);
     res.status(500).json({ error: err.message });
   }
 }
