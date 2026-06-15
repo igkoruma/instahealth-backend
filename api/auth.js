@@ -1,6 +1,7 @@
 export default async function handler(req, res) {
-  const APP_ID = process.env.INSTAGRAM_APP_ID || process.env.FACEBOOK_APP_ID;
-  const APP_SECRET = process.env.INSTAGRAM_APP_SECRET || process.env.FACEBOOK_APP_SECRET;
+  const APP_ID = process.env.INSTAGRAM_APP_ID;
+  const APP_SECRET = process.env.INSTAGRAM_APP_SECRET;
+  // DİKKAT: Sonunda / YOK, https, birebir aynı
   const REDIRECT_URI = 'https://instahealth-backend.vercel.app/api/auth';
   
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -9,18 +10,20 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const { code } = req.query;
-  if (!code) return res.status(400).json({ error: 'Code parametresi yok' });
+  if (!code) return res.status(400).json({ error: 'Code yok' });
 
   try {
-    // DOĞRU ENDPOINT: graph.facebook.com
-    const tokenRes = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?client_id=${APP_ID}&redirect_uri=${REDIRECT_URI}&client_secret=${APP_SECRET}&code=${code}`);
+    const tokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&client_secret=${APP_SECRET}&code=${code}`;
     
+    console.log('TOKEN URL:', tokenUrl); // Vercel logda görünecek
+    
+    const tokenRes = await fetch(tokenUrl);
     const tokenData = await tokenRes.json();
-    console.log('FACEBOOK TOKEN CEVAP:', tokenData);
+    
+    console.log('FB CEVAP:', tokenData);
     
     if (tokenData.error) throw new Error(tokenData.error.message);
 
-    // Kullanıcı bilgisi
     const userRes = await fetch(`https://graph.facebook.com/v19.0/me?fields=id,name&access_token=${tokenData.access_token}`);
     const userData = await userRes.json();
 
@@ -29,7 +32,7 @@ export default async function handler(req, res) {
       user: userData 
     });
   } catch (err) {
-    console.error('HATA DETAY:', err);
+    console.error('HATA:', err);
     res.status(500).json({ error: err.message });
   }
 }
